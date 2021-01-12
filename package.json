@@ -1,0 +1,46 @@
+{
+  "name": "linux-sonos-controller",
+  "version": "0.0.15",
+  "main": "index.js",
+  "author": "Tomas Bulva <https://github.com/tomasbulva",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "webpack -p",
+    "dev": "webpack --mode=development",
+    "start": "qode ./dist/index.js --inspect=9229",
+    "debug": "qode --inspect ./dist/index.js"
+  },
+  "dependencies": {
+    "@nodegui/react-nodegui": "^0.9.0",
+    "@svrooij/sonos": "2.2.0",
+    "@types/underscore": "1.10.24",
+    "open": "^7.2.1",
+    "react": "^16.13.1",
+    "react-router": "5.2.0",
+    "screen-resolution": "1.0.0",
+    "sonos": "^1.12.2",
+    "ts-class-autobind": "0.3.2",
+    "underscore": "1.12.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.11.6",
+    "@babel/preset-env": "^7.11.5",
+    "@babel/preset-react": "^7.10.4",
+    "@babel/preset-typescript": "^7.10.4",
+    "@nodegui/devtools": "1.0.1",
+    "@nodegui/packer": "^1.4.1",
+    "@types/node": "^14.11.1",
+    "@types/react": "^16.9.49",
+    "@types/webpack-env": "^1.15.3",
+    "babel-loader": "^8.1.0",
+    "babel-plugin-transform-class-properties": "6.24.1",
+    "clean-webpack-plugin": "^3.0.0",
+    "file-loader": "^6.1.0",
+    "fork-ts-checker-webpack-plugin": "^5.2.0",
+    "native-addon-loader": "^2.0.1",
+    "typescript": "^4.0.3",
+    "webpack": "^4.44.2",
+    "webpack-cli": "^3.3.12"
+  }
+}
