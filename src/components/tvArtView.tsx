@@ -1,6 +1,8 @@
 import React, { useRef } from "react";
 import { Image, View } from "@nodegui/react-nodegui";
 
+import tvIconPath from "../../assets/tv-gray-full.png";
+
 import {
   AspectRatioMode
 } from "@nodegui/nodegui";
@@ -11,7 +13,7 @@ export default function AlbumArtView() {
 			<Image
 				id="tvIcon"
 	            aspectRatioMode={AspectRatioMode.KeepAspectRatio}
-	            src="assets/tv-gray-full.png"
+	            src={tvIconPath}
 	        />
         </View>
 	);
