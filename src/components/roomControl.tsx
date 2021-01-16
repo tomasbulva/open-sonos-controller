@@ -11,7 +11,7 @@ import {
 
 import { unescape } from "../utils/unescape";
 
-import audioOrangeIconPath from "../../assets/audio-orange-full.png";
+import audioOrangeIconPath from "../../assets/audio-playing-orange-full.png";
 const audioOrangeIcon = new QIcon(audioOrangeIconPath);
 
 import audioIconPath from "../../assets/audio-bright-full.png";

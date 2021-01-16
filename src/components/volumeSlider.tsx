@@ -1,69 +1,109 @@
-import React, { useRef, useEffect } from "react";
-import { Slider, useEventHandler, View, Image } from "@nodegui/react-nodegui";
-
-import volumeMinIconPath from "../../assets/volume-low-bright-full.png";
-import volumeMidIconPath from "../../assets/volume-mid-bright-full.png";
-import volumeMaxIconPath from "../../assets/volume-high-bright-full.png";
+import React, { useRef, useEffect, useState } from "react";
+import { Slider, useEventHandler, View, Image, Button } from "@nodegui/react-nodegui";
 
 import {
   QAbstractSliderSignals,
   AspectRatioMode,
+  QIcon,
+  QSize,
 } from "@nodegui/nodegui";
+
+import volumeMuteIconPath from "../../assets/mute-bright-full.png";
+const volumeMuteIcon = new QIcon(volumeMuteIconPath);
+
+import volumeNoneIconPath from "../../assets/volume-none-bright-full.png";
+const volumeNoneIcon = new QIcon(volumeNoneIconPath);
+
+import volumeMinIconPath from "../../assets/volume-low-bright-full.png";
+const volumeMinIcon = new QIcon(volumeMinIconPath);
+
+import volumeMidIconPath from "../../assets/volume-mid-bright-full.png";
+const volumeMidIcon = new QIcon(volumeMidIconPath);
+
+import volumeMaxIconPath from "../../assets/volume-high-bright-full.png";
+const volumeMaxIcon = new QIcon(volumeMaxIconPath);
 
 
 interface VolumeSliderProps {
-  volume?: number;
+  volume: number;
   setVolume: (volume: number) => void;
+  isMute: boolean;
+  mute: () => void;
 }
 
 export default function VolumeSlider(props: VolumeSliderProps) {
+  const { isMute, mute } = props;
+
   const sliderRef = useRef<any>();
   
   const iconMatrix = [
     {
       min: 0,
+      max: 1,
+      icon: volumeNoneIcon
+    },
+    {
+      min: 2,
       max: 30,
-      icon: volumeMinIconPath
+      icon: volumeMinIcon
     },
     {
       min: 31,
       max: 60,
-      icon: volumeMidIconPath
+      icon: volumeMidIcon
     },
     {
       min: 61,
       max: 100,
-      icon: volumeMaxIconPath
+      icon: volumeMaxIcon
     },
   ]
 
-  const volumeStrength = (x:number | undefined): string => {
-    if (!x) {
+  const volumeStrength = (x:number | undefined): any => {
+    if (x === undefined) {
       return iconMatrix[1].icon;
     }
 
-    return iconMatrix.filter((range: {min: number, max: number, icon: string}) => x >= range.min && x <= range.max)[0].icon; 
+    if (props.isMute) {
+      return volumeMuteIcon;
+    }
+
+    const rangeIcon = iconMatrix.filter((range: {min: number, max: number, icon: any}) => x >= range.min && x <= range.max);
+    return rangeIcon[0].icon; 
   }
 
+  const [volume, setVolume] = useState<number>(props.volume);
+  const [volumeIcon, setVolumeIcon] = useState<any>(volumeStrength(props.volume));
+
+  useEffect(() => {
+    setVolume(props.volume);
+    setVolumeIcon({...volumeStrength(props.volume)});
+  }, [props.volume, props.isMute])
+
   const checkHandler = useEventHandler<QAbstractSliderSignals>({
-    sliderReleased: () => props.setVolume(sliderRef.current?.value() || 0)
+    sliderReleased: () => {
+      props.setVolume(sliderRef.current.value());
+      setVolumeIcon({...volumeStrength(sliderRef.current.value())});
+    }
   },[]);
 
   return (
     <View id="sliderContainer" styleSheet={styleSheet}>
-      <Image
-        id="icon"
-        aspectRatioMode={AspectRatioMode.KeepAspectRatio}
-        src={volumeStrength(sliderRef.current?.value())}
-      ></Image>
+      <Button
+        id="ACBtn"
+        icon={volumeIcon}
+        iconSize={new QSize(30, 30)}
+        on={{ clicked: mute }}
+      />
       <Slider
         id="slider"
         minimum={0}
         maximum={100}
         orientation={1}
-        value={props.volume}
+        value={volume}
         on={checkHandler}
         ref={sliderRef}
+        enabled={!props.isMute}
       />
     </View>
   );
@@ -75,6 +115,20 @@ const styleSheet = `
     flex-direction: row;
     margin-horizontal: '0px';
     padding-horizontal: '0px';
+  }
+
+  #ACBtn {
+    background-color: '#272727';
+    border: 3px solid #272727;
+    border-radius: '25%';
+  }
+
+  #ACBtn:pressed {
+    background-color: '#363636';
+  }
+
+  #ACBtn:hover {
+    background-color: '#363636';
   }
 
   #icon {

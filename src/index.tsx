@@ -3,6 +3,7 @@ import React from "react";
 import App from "./app";
 
 process.title = "Sonos Control";
+
 Renderer.render(<App />, {
   onInit: (reconciler: any) => {
     if (process.env.NODE_ENV === "development") {

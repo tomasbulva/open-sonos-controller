@@ -16,6 +16,7 @@ import TvArtView from "./components/tvArtView"
 import CurrentTrackMetaDataView from "./components/currentTrackMetaDataView";
 import PlaybackControl from "./components/playbackControl"
 import RoomControl from "./components/roomControl"
+import TvPlaybackControl from "./components/tvPlaybackControl"
 
 
 const minSize = { width: 400, height: 700 };
@@ -68,10 +69,9 @@ class App extends React.Component<{}, MyState> {
   async componentDidMount() {
     await this.sonosDiscovery();
     this.getSonosState();
-      
 
     setInterval(() => {
-      this.sonosDiscovery();
+      this.sonosDiscoveryOnDemand();
 
       manager.Devices.forEach(async (d:any) => {
         const result = await d.RefreshEventSubscriptions();
@@ -93,8 +93,10 @@ class App extends React.Component<{}, MyState> {
   }
 
   componentWillUnmount() {
-    this.sonosDiscovery();
+    this.unmountSonos();
+  }
 
+  unmountSonos() {
     manager.Devices.forEach(d => {
       d.CancelEvents();
       d.AlarmClockService.Events.removeAllListeners(ServiceEvents.Data)
@@ -105,11 +107,24 @@ class App extends React.Component<{}, MyState> {
     manager.CancelSubscription();
   }
 
+  async sonosDiscoveryOnDemand(): Promise<any> {
+    try{
+      console.log(manager.Devices.length);
+    } catch(e) {
+      console.log('no devices, re-discovering');
+      await this.sonosDiscovery();
+      this.unmountSonos();
+      this.getSonosState();
+    }
+  }
+
   sonosDiscovery(): Promise<boolean> {
+    console.log('sonosDiscovery');
     return manager.InitializeWithDiscovery(10);
   }
 
   getSonosState():void {
+    console.log('getSonosState');
     manager.Devices.forEach((d:any) => {
       let mySonosDevice:MySonosDevice = {
           uuid: d.uuid,
@@ -131,6 +146,32 @@ class App extends React.Component<{}, MyState> {
         return { ...prevState, devices: mySonosDevices, isLoading: false };
       });
 
+      d.RenderingControlService.GetVolume({
+        InstanceID: 0, 
+        Channel: 'Master'
+      }).then((data: any) => {
+        console.log('data.CurrentVolume', data.CurrentVolume);
+
+        this.setState(prevState => {
+          let mySonosDevices = {...prevState.devices};
+
+          if (
+            data.TrackMetaData 
+          ) {
+            mySonosDevices[d.uuid] = {
+              ...mySonosDevices[d.uuid], 
+              volume: data.CurrentVolume
+            }
+          }
+
+          return {devices: mySonosDevices};
+        });
+      })
+      .catch((error:any) => {
+        console.log(error);
+      });
+
+
       d.AVTransportService.GetPositionInfo().then((data: any) => {
         this.setState(prevState => {
           let mySonosDevices = {...prevState.devices};
@@ -142,29 +183,15 @@ class App extends React.Component<{}, MyState> {
               ...mySonosDevices[d.uuid], 
               ...{
                 CurrentTrackMetaData: {
-                  Album: data.TrackMetaData.Album,
-                  Artist: data.TrackMetaData.Artist,
-                  Title: data.TrackMetaData.Title,
-                  Duration: data.TrackMetaData.Duration,
+                  Album: data.TrackMetaData?.Album,
+                  Artist: data.TrackMetaData?.Artist,
+                  Title: data.TrackMetaData?.Title,
+                  Duration: data.TrackMetaData?.Duration,
+                  AlbumArtUri: data.TrackMetaData?.AlbumArtUri,
                 }
               }
             };
           }
-
-          if (
-            JSON.stringify(prevState?.devices[d.uuid]?.CurrentTrackMetaData?.AlbumArtUri) !== JSON.stringify(data?.CurrentTrackMetaData?.AlbumArtUri) || 
-            !prevState?.devices[d.uuid]?.CurrentTrackMetaData?.AlbumArtUri
-          ) {
-            mySonosDevices[d.uuid] = {
-              ...mySonosDevices[d.uuid],
-              ...{
-                CurrentTrackMetaData: {
-                  AlbumArtUri: data.TrackMetaData.AlbumArtUri,
-                }
-              }
-            };
-          }
-
           
           mySonosDevices[d.uuid].isTV = (data.TrackURI && data.TrackURI.includes('spdif'));
           
@@ -194,6 +221,29 @@ class App extends React.Component<{}, MyState> {
         });
       });
 
+      d.RenderingControlService.Events.on('serviceEvent', (data:any) => {
+        console.log('RenderingControlService mute', data.Mute);
+        this.setState(prevState => {
+            let mySonosDevices = {...prevState.devices};
+            if (mySonosDevices[d.uuid] && mySonosDevices[d.uuid].name) {
+              mySonosDevices[d.uuid] = {
+                ...(
+                  mySonosDevices[d.uuid] || {}
+                ), 
+                ...{
+                  isTvDialogOn: data?.DialogLevel === '1',
+                  isTvNightOn: data?.NightMode === true,
+                  isMute: data?.Mute?.Master,
+                }
+              };
+
+              return { ...prevState, devices: mySonosDevices};
+            }
+
+            return prevState;
+          });
+      });
+
       d.AVTransportService.Events.on('serviceEvent', (data:any) => {
         this.setState(prevState => {
             let mySonosDevices = {...prevState.devices};
@@ -212,17 +262,17 @@ class App extends React.Component<{}, MyState> {
 
               if (
                 data.CurrentTrackMetaData && 
-                JSON.stringify(prevState.devices[d.uuid].CurrentTrackMetaData.Title) !== JSON.stringify(data.CurrentTrackMetaData.Title)
+                JSON.stringify(prevState.devices[d.uuid].CurrentTrackMetaData?.Title) !== JSON.stringify(data.CurrentTrackMetaData?.Title)
               ) {
                 mySonosDevices[d.uuid] = {
                   ...mySonosDevices[d.uuid], 
                   ...{
                     CurrentTrackMetaData: {
-                      Album: data.CurrentTrackMetaData.Album,
-                      Artist: data.CurrentTrackMetaData.Artist,
-                      AlbumArtUri: data.CurrentTrackMetaData.AlbumArtUri,
-                      Title: data.CurrentTrackMetaData.Title,
-                      Duration: data.CurrentTrackMetaData.Duration,
+                      Album: data.CurrentTrackMetaData?.Album,
+                      Artist: data.CurrentTrackMetaData?.Artist,
+                      AlbumArtUri: data.CurrentTrackMetaData?.AlbumArtUri,
+                      Title: data.CurrentTrackMetaData?.Title,
+                      Duration: data.CurrentTrackMetaData?.Duration,
                     }
                   }
                 };
@@ -245,7 +295,7 @@ class App extends React.Component<{}, MyState> {
   }
 
   async handlePlay (): Promise<any> {
-    await this.sonosDiscovery();
+    await this.sonosDiscoveryOnDemand();
 
     const { selectedDeviceUuid, devices } = this.state;
     manager.Devices.forEach((d:any) => {
@@ -256,7 +306,7 @@ class App extends React.Component<{}, MyState> {
   }
 
   async handlePause (): Promise<any> {
-    await this.sonosDiscovery();
+    await this.sonosDiscoveryOnDemand();
 
     const { selectedDeviceUuid, devices } = this.state;
     manager.Devices.forEach((d:any) => {
@@ -267,7 +317,7 @@ class App extends React.Component<{}, MyState> {
   }
 
   async handleNext (): Promise<any> {
-    await this.sonosDiscovery();
+    await this.sonosDiscoveryOnDemand();
 
     const { selectedDeviceUuid, devices } = this.state;
     manager.Devices.forEach((d:any) => {
@@ -277,9 +327,8 @@ class App extends React.Component<{}, MyState> {
     });
   }
 
-
   async handlePrev (): Promise<any> {
-    await this.sonosDiscovery();
+    await this.sonosDiscoveryOnDemand();
 
     const { selectedDeviceUuid, devices } = this.state;
     manager.Devices.forEach((d:any) => {
@@ -290,13 +339,56 @@ class App extends React.Component<{}, MyState> {
   }
 
   async setVolume (volume: number):Promise<any> {
-    await this.sonosDiscovery();
+    await this.sonosDiscoveryOnDemand();
 
     const { selectedDeviceUuid } = this.state;
 
     manager.Devices.forEach((d:any) => {
       if (d.uuid === selectedDeviceUuid) {
         d.SetVolume(volume);
+      }
+    });
+  }
+
+  async setDialog (): Promise<any> {
+    await this.sonosDiscoveryOnDemand();
+
+    const { selectedDeviceUuid, devices } = this.state;
+
+    // console.log('devices[selectedDeviceUuid].isTvDialogOn', devices[selectedDeviceUuid].isTvDialogOn);
+
+    manager.Devices.forEach((d:any) => {
+      if (d.uuid === selectedDeviceUuid) {
+        d.SetSpeechEnhancement(devices[selectedDeviceUuid].isTvDialogOn ? false : true);
+      }
+    });
+  }
+
+  async setNight (): Promise<any> {
+    await this.sonosDiscoveryOnDemand();
+
+    const { selectedDeviceUuid, devices } = this.state;
+    manager.Devices.forEach((d:any) => {
+      if (d.uuid === selectedDeviceUuid) {
+        d.SetNightMode(devices[selectedDeviceUuid].isTvNightOn ? false : true);
+      }
+    });
+  }
+
+  async setMute (): Promise<any> {
+    await this.sonosDiscoveryOnDemand();
+
+    const { selectedDeviceUuid, devices } = this.state;
+
+    // console.log('!devices[selectedDeviceUuid].isMute', !devices[selectedDeviceUuid].isMute)
+
+    manager.Devices.forEach((d:any) => {
+      if (d.uuid === selectedDeviceUuid) {
+        d.RenderingControlService.SetMute({
+          InstanceID: 0, 
+          Channel: 'Master', 
+          DesiredMute: !devices[selectedDeviceUuid].isMute
+        });
       }
     });
   }
@@ -354,11 +446,22 @@ class App extends React.Component<{}, MyState> {
                       <View id="mainTvControl">
                         <TvArtView />
                         <CurrentTrackMetaDataView currentTrackMetaData={{Album: "", Artist: "", Title: "TV"}} />
+                        <TvPlaybackControl
+                          isTvDialogOn={devices[selectedDeviceUuid].isTvDialogOn}
+                          isTvNightOn={devices[selectedDeviceUuid].isTvNightOn}
+                          dialog={this.setDialog.bind(this)}
+                          night={this.setNight.bind(this)}
+                        />
                       </View>
                     )
                   }
                   <View id="mainVolumeControl">
-                    <VolumeSlider volume={devices[selectedDeviceUuid].volume} setVolume={this.setVolume.bind(this)} />
+                    <VolumeSlider
+                      volume={devices[selectedDeviceUuid].volume}
+                      setVolume={this.setVolume.bind(this)}
+                      isMute={devices[selectedDeviceUuid].isMute}
+                      mute={this.setMute.bind(this)}
+                    />
                   </View>
                   <View id="spacer" />
 
