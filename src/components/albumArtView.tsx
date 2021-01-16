@@ -14,6 +14,8 @@ interface AlbumArtViewProps {
 
 export default function AlbumArtView(props: AlbumArtViewProps) {
 	const { albumArtUri } = props;
+
+	console.log('albumArtUri', albumArtUri);
 	
 	return albumArtUri ? (
 		<View styleSheet={styleSheet} id="cover">
