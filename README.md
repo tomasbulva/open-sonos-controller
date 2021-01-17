@@ -4,6 +4,8 @@ This is meant to be the first hackable sonos controller. Based on ingenious Node
 ## What is it?
 OSC is not meant to replace sonos app or even spotify. It's just a remote to your sonos. Primarily focused on a severely underserved Linux community. 
 
+## [linux appImage](https://github.com/tomasbulva/open-sonos-controller/releases)
+
 ## How does it look? 
 ![Kiku](assets/OpenSonosController1.png)
 
