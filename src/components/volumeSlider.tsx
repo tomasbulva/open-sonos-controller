@@ -1,5 +1,11 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Slider, useEventHandler, View, Image, Button } from "@nodegui/react-nodegui";
+import {
+  Slider,
+  useEventHandler,
+  View,
+  Image,
+  Button
+} from "@nodegui/react-nodegui";
 
 import {
   QAbstractSliderSignals,
@@ -82,9 +88,13 @@ export default function VolumeSlider(props: VolumeSliderProps) {
 
   const checkHandler = useEventHandler<QAbstractSliderSignals>({
     sliderReleased: () => {
+      setVolume(sliderRef.current.value());
       props.setVolume(sliderRef.current.value());
       setVolumeIcon({...volumeStrength(sliderRef.current.value())});
-    }
+    },
+    // valueChanged: (newValue: number) => {
+    //   console.log('valueChanged', newValue);
+    // }
   },[]);
 
   return (

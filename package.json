@@ -1,6 +1,6 @@
 {
   "name": "linux-sonos-controller",
-  "version": "0.0.15",
+  "version": "0.1.0",
   "main": "index.js",
   "author": "Tomas Bulva <https://github.com/tomasbulva",
   "license": "MIT",
