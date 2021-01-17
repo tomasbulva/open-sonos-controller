@@ -1,4 +1,13 @@
-import { Text, Window, hot, View, BoxView, ScrollArea } from "@nodegui/react-nodegui";
+import {
+  Text, 
+  Window, 
+  hot, 
+  View, 
+  BoxView, 
+  ScrollArea,
+  useEventHandler
+} from "@nodegui/react-nodegui";
+
 import React from "react";
 
 import { SonosManager, SonosEvents, ServiceEvents } from "@svrooij/sonos";
@@ -6,8 +15,14 @@ import { SonosManager, SonosEvents, ServiceEvents } from "@svrooij/sonos";
 import { unescape } from "./utils/unescape";
 import ErrorBoundary from "./utils/errorBoundary";
 
+import { 
+  QIcon, 
+  QMainWindow, 
+  Direction,
+  QKeyEvent,
+  QMainWindowSignals,
+} from "@nodegui/nodegui";
 
-import { QIcon, QMainWindow, Direction } from "@nodegui/nodegui";
 import nodeguiIcon from "../assets/LSC-bright-outline.png";
 
 import VolumeSlider from "./components/volumeSlider";
@@ -109,7 +124,9 @@ class App extends React.Component<{}, MyState> {
 
   async sonosDiscoveryOnDemand(): Promise<any> {
     try{
-      console.log(manager.Devices.length);
+      if (manager.Devices.length === 0) {
+        console.log('No discovered devices.');
+      }
     } catch(e) {
       console.log('no devices, re-discovering');
       await this.sonosDiscovery();
@@ -119,12 +136,10 @@ class App extends React.Component<{}, MyState> {
   }
 
   sonosDiscovery(): Promise<boolean> {
-    console.log('sonosDiscovery');
     return manager.InitializeWithDiscovery(10);
   }
 
   getSonosState():void {
-    console.log('getSonosState');
     manager.Devices.forEach((d:any) => {
       let mySonosDevice:MySonosDevice = {
           uuid: d.uuid,
@@ -150,8 +165,6 @@ class App extends React.Component<{}, MyState> {
         InstanceID: 0, 
         Channel: 'Master'
       }).then((data: any) => {
-        console.log('data.CurrentVolume', data.CurrentVolume);
-
         this.setState(prevState => {
           let mySonosDevices = {...prevState.devices};
 
@@ -222,7 +235,6 @@ class App extends React.Component<{}, MyState> {
       });
 
       d.RenderingControlService.Events.on('serviceEvent', (data:any) => {
-        console.log('RenderingControlService mute', data.Mute);
         this.setState(prevState => {
             let mySonosDevices = {...prevState.devices};
             if (mySonosDevices[d.uuid] && mySonosDevices[d.uuid].name) {
@@ -355,8 +367,6 @@ class App extends React.Component<{}, MyState> {
 
     const { selectedDeviceUuid, devices } = this.state;
 
-    // console.log('devices[selectedDeviceUuid].isTvDialogOn', devices[selectedDeviceUuid].isTvDialogOn);
-
     manager.Devices.forEach((d:any) => {
       if (d.uuid === selectedDeviceUuid) {
         d.SetSpeechEnhancement(devices[selectedDeviceUuid].isTvDialogOn ? false : true);
@@ -380,8 +390,6 @@ class App extends React.Component<{}, MyState> {
 
     const { selectedDeviceUuid, devices } = this.state;
 
-    // console.log('!devices[selectedDeviceUuid].isMute', !devices[selectedDeviceUuid].isMute)
-
     manager.Devices.forEach((d:any) => {
       if (d.uuid === selectedDeviceUuid) {
         d.RenderingControlService.SetMute({
@@ -395,6 +403,23 @@ class App extends React.Component<{}, MyState> {
 
   selectHandler (uuid: string):void {
     this.setState({selectedDeviceUuid: uuid});
+  }
+
+  keyboardHandler <QMainWindowSignals>(evt: any): void {
+    const keyEvt = new QKeyEvent(evt);
+    const { selectedDeviceUuid, devices } = this.state;
+    const step = 3;
+    const keyText = keyEvt.text();
+    const audioPlus = ["=", "+"];
+    const audioMinus = ["-", "_"];
+
+    if (audioPlus.includes(keyText)) {
+      this.setVolume(devices[selectedDeviceUuid].volume + step);
+    }
+
+    if (audioMinus.includes(keyText)) {
+      this.setVolume(devices[selectedDeviceUuid].volume - step);
+    }
   }
 
   render() {
@@ -412,6 +437,9 @@ class App extends React.Component<{}, MyState> {
         minSize={minSize}
         maxSize={maxSize}
         styleSheet={styleSheet}
+        on={{
+          KeyRelease: this.keyboardHandler.bind(this)
+        }}
       >
         <ErrorBoundary>
           <View id="mainContainer">
@@ -424,7 +452,7 @@ class App extends React.Component<{}, MyState> {
                   { 
                     !devices[selectedDeviceUuid].isTV ? (
                       <View id="mainPlaybackControl">
-                        <AlbumArtView albumArtUri={devices[selectedDeviceUuid]?.CurrentTrackMetaData?.AlbumArtUri || undefined}/>
+                        <AlbumArtView albumArtUri={devices[selectedDeviceUuid]?.CurrentTrackMetaData?.AlbumArtUri}/>
                         {
                           devices[selectedDeviceUuid]?.CurrentTrackMetaData && (
                             <CurrentTrackMetaDataView currentTrackMetaData={devices[selectedDeviceUuid].CurrentTrackMetaData} />
