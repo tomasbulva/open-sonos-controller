@@ -7,8 +7,7 @@ OSC is not meant to replace sonos app or even spotify. It's just a remote to you
 ## [linux appImage](https://github.com/tomasbulva/open-sonos-controller/releases)
 
 ## How does it look? 
-![Kiku](assets/OpenSonosController2.png)
-
+<img src="assets/OpenSonosController2.png" alt="screenshot" height="700"/>
 
 ## Features
 - album cover image
