@@ -7,7 +7,7 @@ OSC is not meant to replace sonos app or even spotify. It's just a remote to you
 ## [linux appImage](https://github.com/tomasbulva/open-sonos-controller/releases)
 
 ## How does it look? 
-![Kiku](assets/OpenSonosController1.png)
+![Kiku](assets/OpenSonosController2.png)
 
 
 ## Features
@@ -15,11 +15,14 @@ OSC is not meant to replace sonos app or even spotify. It's just a remote to you
 - volume slider
 - audio control (play, pause, previous and next track)
 - room selector
+- mute
+- tv mode controls
+
 
 ## Todo
-- mute
 - groups
 - favorites
+- source selector
 
 ---
 
